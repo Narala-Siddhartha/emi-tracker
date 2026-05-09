@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+import React, { useState, useCallback, memo } from "react";
 import { useEMI } from "../../context/EMIContext";
 import toast from "react-hot-toast";
 

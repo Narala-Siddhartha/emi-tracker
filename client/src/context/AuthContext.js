@@ -5,16 +5,22 @@ const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser]       = useState(null);
-  const [loading, setLoading] = useState(true); // true on first load
+  const [loading, setLoading] = useState(true);
+
+  // ── Logout — defined first so useEffect can reference it ──────────────────
+  const logout = useCallback(() => {
+    localStorage.removeItem("emi_token");
+    localStorage.removeItem("emi_user");
+    setUser(null);
+  }, []);
 
   // ── Restore session on app start ──────────────────────────────────────────
   useEffect(() => {
-    const token = localStorage.getItem("emi_token");
+    const token     = localStorage.getItem("emi_token");
     const savedUser = localStorage.getItem("emi_user");
 
     if (token && savedUser) {
       setUser(JSON.parse(savedUser));
-      // Verify token is still valid
       authAPI.getMe()
         .then(({ data }) => setUser(data.user))
         .catch(() => logout())
@@ -22,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [logout]);
 
   // ── Register ───────────────────────────────────────────────────────────────
   const register = useCallback(async (formData) => {
@@ -42,13 +48,6 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
-  // ── Logout ─────────────────────────────────────────────────────────────────
-  const logout = useCallback(() => {
-    localStorage.removeItem("emi_token");
-    localStorage.removeItem("emi_user");
-    setUser(null);
-  }, []);
-
   // ── Update user in state ───────────────────────────────────────────────────
   const updateUser = useCallback((updatedUser) => {
     setUser(updatedUser);
@@ -62,7 +61,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook for easy access
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
