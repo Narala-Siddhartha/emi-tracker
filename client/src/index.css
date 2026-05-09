@@ -1,0 +1,188 @@
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=cabinet-grotesk@400,500,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-primary: #0a0f1e;
+  --bg-secondary: #0f172a;
+  --bg-card: #1e293b;
+  --accent: #0ea5e9;
+  --accent-glow: rgba(14,165,233,0.15);
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --border: rgba(148,163,184,0.1);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 70px;
+  --topbar-height: 56px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1,h2,h3,h4 { font-family: 'Clash Display', sans-serif; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-card); border-radius: 10px; }
+
+.glass-card {
+  background: rgba(30,41,59,0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+
+.glow { box-shadow: 0 0 30px var(--accent-glow); }
+
+.input-field {
+  width: 100%;
+  background: rgba(15,23,42,0.8);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: 'Cabinet Grotesk', sans-serif;
+  font-size: 15px;
+  transition: all 0.2s;
+  outline: none;
+  -webkit-appearance: none;
+}
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.input-field::placeholder { color: var(--text-secondary); }
+select.input-field option { background: #1e293b; color: var(--text-primary); }
+
+.btn-primary {
+  background: linear-gradient(135deg, #0ea5e9, #0369a1);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  touch-action: manipulation;
+}
+.btn-primary:hover  { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(14,165,233,0.35); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-family: 'Clash Display', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+.badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.badge-Active    { background: rgba(16,185,129,0.15); color: #10b981; }
+.badge-Completed { background: rgba(14,165,233,0.15); color: #0ea5e9; }
+.badge-Paused    { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+
+.cat-Home      { background: rgba(14,165,233,0.15);  color: #0ea5e9; }
+.cat-Car       { background: rgba(168,85,247,0.15);  color: #a855f7; }
+.cat-Personal  { background: rgba(249,115,22,0.15);  color: #f97316; }
+.cat-Education { background: rgba(16,185,129,0.15);  color: #10b981; }
+.cat-Business  { background: rgba(245,158,11,0.15);  color: #f59e0b; }
+.cat-Other     { background: rgba(148,163,184,0.15); color: #94a3b8; }
+
+.mesh-bg {
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(14,165,233,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(99,102,241,0.06) 0%, transparent 50%),
+    var(--bg-primary);
+}
+
+/* Mobile bottom nav */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Overlay for mobile sidebar */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 99;
+  backdrop-filter: blur(2px);
+}
+
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+.animate-fade-in  { animation: fadeIn  0.4s ease-out; }
+.animate-slide-up { animation: slideUp 0.4s ease-out; }
+.animate-slide-in { animation: slideIn 0.3s ease-out; }
+
+/* ── Mobile Responsive ────────────────────────────────────── */
+@media (max-width: 768px) {
+  :root { --topbar-height: 56px; }
+
+  .mobile-nav     { display: flex; }
+  .sidebar-overlay { display: block; }
+  .desktop-sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+  .desktop-sidebar.open { transform: translateX(0); }
+
+  .page-content {
+    margin-left: 0 !important;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .grid-2col { grid-template-columns: 1fr !important; }
+  .grid-3col { grid-template-columns: 1fr 1fr !important; }
+  .grid-4col { grid-template-columns: 1fr 1fr !important; }
+
+  .hide-mobile { display: none !important; }
+  .full-mobile { width: 100% !important; }
+
+  .modal-inner {
+    max-height: 95vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .form-grid-2 { grid-template-columns: 1fr !important; }
+
+  h1 { font-size: 22px !important; }
+  h2 { font-size: 20px !important; }
+}
+
+@media (max-width: 480px) {
+  .grid-3col { grid-template-columns: 1fr !important; }
+  .grid-4col { grid-template-columns: 1fr 1fr !important; }
+  .stat-value { font-size: 18px !important; }
+}
