@@ -1,39 +1,35 @@
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
 
-// ─── Create Transporter ────────────────────────────────────────────────────────
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,          // false for STARTTLS on port 587
-    requireTLS: true,       // force TLS upgrade
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_APP_PASSWORD,
-    },
-    tls: {
-      rejectUnauthorized: false, // allow on Render's servers
-    },
-    connectionTimeout: 10000,   // 10 sec
-    greetingTimeout:   10000,
-    socketTimeout:     15000,
-  });
-};
+// ─── Initialize SendGrid ───────────────────────────────────────────────────────
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 // ─── Format currency ───────────────────────────────────────────────────────────
 const fmt = (n) =>
   new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
+    style: "currency", currency: "INR", maximumFractionDigits: 0,
   }).format(n || 0);
+
+// ─── Check config ─────────────────────────────────────────────────────────────
+const isConfigured = () => {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn("⚠️  SENDGRID_API_KEY not set — skipping email.");
+    return false;
+  }
+  if (!process.env.EMAIL_USER) {
+    console.warn("⚠️  EMAIL_USER not set — skipping email.");
+    return false;
+  }
+  return true;
+};
 
 // ─── EMI Reminder Email Template ──────────────────────────────────────────────
 const buildReminderEmailHTML = (userName, emis) => {
   const totalDue = emis.reduce((s, e) => s + e.emiAmount, 0);
 
   const emiRows = emis.map((emi) => {
-    const dueDate = new Date(emi.nextDueDate).toLocaleDateString("en-IN", {
+    const dueDate  = new Date(emi.nextDueDate).toLocaleDateString("en-IN", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
     const daysLeft = Math.ceil(
@@ -56,8 +52,7 @@ const buildReminderEmailHTML = (userName, emis) => {
           <p style="margin:0;font-weight:800;color:#0ea5e9;font-size:18px;">${fmt(emi.emiAmount)}</p>
           <p style="margin:4px 0 0;color:#94a3b8;font-size:11px;">${emi.remainingMonths} months left</p>
         </td>
-      </tr>
-    `;
+      </tr>`;
   }).join("");
 
   return `
@@ -67,9 +62,8 @@ const buildReminderEmailHTML = (userName, emis) => {
 <body style="margin:0;padding:0;background:#0a0f1e;font-family:'Segoe UI',Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.2);border-radius:14px;padding:12px 24px;">
-        <span style="font-size:24px;">💳</span>
-        <span style="font-size:20px;font-weight:800;color:#f1f5f9;">EMI Tracker</span>
+      <div style="display:inline-block;background:rgba(14,165,233,0.1);border:1px solid rgba(14,165,233,0.2);border-radius:14px;padding:12px 24px;">
+        <span style="font-size:20px;font-weight:800;color:#f1f5f9;">💳 EMI Tracker</span>
       </div>
     </div>
     <div style="background:#0f172a;border:1px solid rgba(148,163,184,0.1);border-radius:20px;overflow:hidden;">
@@ -77,74 +71,32 @@ const buildReminderEmailHTML = (userName, emis) => {
         <h1 style="margin:0;font-size:22px;font-weight:800;color:#f1f5f9;">🔔 Payment Reminder</h1>
         <p style="margin:6px 0 0;color:#94a3b8;font-size:14px;">Hi ${userName}, you have ${emis.length} EMI${emis.length>1?"s":""} due soon!</p>
       </div>
-      <div style="background:rgba(239,68,68,0.08);border-bottom:1px solid rgba(239,68,68,0.12);padding:16px 32px;display:flex;justify-content:space-between;align-items:center;">
-        <p style="margin:0;color:#94a3b8;font-size:14px;">Total amount due</p>
-        <p style="margin:0;font-size:26px;font-weight:800;color:#ef4444;">${fmt(totalDue)}</p>
+      <div style="padding:16px 32px;border-bottom:1px solid rgba(239,68,68,0.12);background:rgba(239,68,68,0.08);">
+        <p style="margin:0;color:#94a3b8;font-size:14px;">Total amount due: <strong style="color:#ef4444;font-size:20px;">${fmt(totalDue)}</strong></p>
       </div>
-      <div style="padding:8px 0;">
-        <table style="width:100%;border-collapse:collapse;">
-          <thead>
-            <tr style="background:rgba(15,23,42,0.5);">
-              <th style="padding:12px 16px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;">Loan</th>
-              <th style="padding:12px 16px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;">Due Date</th>
-              <th style="padding:12px 16px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;">Status</th>
-              <th style="padding:12px 16px;text-align:right;color:#64748b;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>${emiRows}</tbody>
-        </table>
-      </div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:rgba(15,23,42,0.5);">
+            <th style="padding:12px 16px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Loan</th>
+            <th style="padding:12px 16px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Due Date</th>
+            <th style="padding:12px 16px;text-align:left;color:#64748b;font-size:11px;text-transform:uppercase;">Status</th>
+            <th style="padding:12px 16px;text-align:right;color:#64748b;font-size:11px;text-transform:uppercase;">Amount</th>
+          </tr>
+        </thead>
+        <tbody>${emiRows}</tbody>
+      </table>
       <div style="padding:20px 32px;background:rgba(14,165,233,0.05);border-top:1px solid rgba(14,165,233,0.08);">
-        <p style="margin:0 0 10px;color:#94a3b8;font-size:13px;font-weight:600;">💡 Quick Tips</p>
-        <ul style="margin:0;padding-left:18px;color:#64748b;font-size:13px;line-height:1.8;">
-          <li>Set up auto-debit to never miss a payment</li>
-          <li>Late payments can affect your credit score</li>
-          <li>Log into EMI Tracker to mark payments as done</li>
-        </ul>
+        <p style="margin:0;color:#64748b;font-size:13px;">💡 Log into EMI Tracker to mark payments as done and track your progress.</p>
       </div>
     </div>
-    <div style="text-align:center;margin-top:28px;">
-      <p style="color:#334155;font-size:12px;margin:0;">Automated reminder from <strong style="color:#475569;">EMI Tracker</strong></p>
-      <p style="color:#1e293b;font-size:11px;margin:8px 0 0;">© ${new Date().getFullYear()} EMI Tracker</p>
-    </div>
+    <p style="text-align:center;color:#334155;font-size:12px;margin-top:24px;">© ${new Date().getFullYear()} EMI Tracker · Automated Reminder</p>
   </div>
 </body>
 </html>`;
 };
 
-// ─── Send EMI Reminder Email ───────────────────────────────────────────────────
-const sendEMIReminderEmail = async ({ toEmail, toName, emis }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
-    console.warn("⚠️  Email not configured — skipping.");
-    return;
-  }
-  const transporter = createTransporter();
-  const totalDue    = emis.reduce((s, e) => s + e.emiAmount, 0);
-  const subject     = emis.length === 1
-    ? `🔔 EMI Reminder: ${emis[0].loanName} — ${fmt(emis[0].emiAmount)} due soon`
-    : `🔔 EMI Reminder: ${emis.length} payments totalling ${fmt(totalDue)} due soon`;
-
-  const info = await transporter.sendMail({
-    from: `"EMI Tracker 💳" <${process.env.EMAIL_USER}>`,
-    to:      toEmail,
-    subject,
-    html: buildReminderEmailHTML(toName, emis),
-  });
-
-  console.log(`📧 Reminder email sent to ${toEmail} — ID: ${info.messageId}`);
-  return info;
-};
-
-// ─── Send Welcome Email ────────────────────────────────────────────────────────
-const sendWelcomeEmail = async ({ toEmail, toName }) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_APP_PASSWORD) {
-    console.warn("⚠️  Email not configured — skipping.");
-    return;
-  }
-
-  const transporter = createTransporter();
-
-  const html = `
+// ─── Welcome Email Template ────────────────────────────────────────────────────
+const buildWelcomeEmailHTML = (toName) => `
 <!DOCTYPE html>
 <html>
 <body style="margin:0;padding:0;background:#0a0f1e;font-family:'Segoe UI',Arial,sans-serif;">
@@ -153,7 +105,7 @@ const sendWelcomeEmail = async ({ toEmail, toName }) => {
     <h1 style="color:#f1f5f9;font-size:26px;margin:0 0 10px;">Welcome to EMI Tracker!</h1>
     <p style="color:#94a3b8;font-size:15px;margin:0 0 28px;">Hi ${toName}, your account is ready. Start tracking your loans and never miss a payment!</p>
     <div style="background:#0f172a;border:1px solid rgba(148,163,184,0.1);border-radius:16px;padding:24px;margin-bottom:28px;text-align:left;">
-      <p style="color:#94a3b8;font-size:14px;margin:0 0 16px;text-align:center;">Here's what you can do:</p>
+      <p style="color:#94a3b8;font-size:14px;margin:0 0 14px;text-align:center;font-weight:600;">Here's what you can do:</p>
       ${["💳 Add all your EMIs in one place","📊 View dashboard summary","📈 Track repayment progress","🔔 Get email reminders before due dates"]
         .map(f => `<p style="color:#f1f5f9;font-size:14px;margin:8px 0;">${f}</p>`).join("")}
     </div>
@@ -162,15 +114,36 @@ const sendWelcomeEmail = async ({ toEmail, toName }) => {
 </body>
 </html>`;
 
-  const info = await transporter.sendMail({
-    from:    `"EMI Tracker 💳" <${process.env.EMAIL_USER}>`,
+// ─── Send EMI Reminder Email ───────────────────────────────────────────────────
+const sendEMIReminderEmail = async ({ toEmail, toName, emis }) => {
+  if (!isConfigured()) return;
+  const totalDue = emis.reduce((s, e) => s + e.emiAmount, 0);
+  const subject  = emis.length === 1
+    ? `🔔 EMI Reminder: ${emis[0].loanName} — ${fmt(emis[0].emiAmount)} due soon`
+    : `🔔 EMI Reminder: ${emis.length} payments totalling ${fmt(totalDue)} due soon`;
+
+  await sgMail.send({
     to:      toEmail,
-    subject: "🎉 Welcome to EMI Tracker!",
-    html,
+    from:    { email: process.env.EMAIL_USER, name: "EMI Tracker" },
+    subject,
+    html:    buildReminderEmailHTML(toName, emis),
   });
 
-  console.log(`📧 Welcome email sent to ${toEmail} — ID: ${info.messageId}`);
-  return info;
+  console.log(`📧 Reminder email sent to ${toEmail}`);
+};
+
+// ─── Send Welcome Email ────────────────────────────────────────────────────────
+const sendWelcomeEmail = async ({ toEmail, toName }) => {
+  if (!isConfigured()) return;
+
+  await sgMail.send({
+    to:      toEmail,
+    from:    { email: process.env.EMAIL_USER, name: "EMI Tracker" },
+    subject: "🎉 Welcome to EMI Tracker!",
+    html:    buildWelcomeEmailHTML(toName),
+  });
+
+  console.log(`📧 Welcome email sent to ${toEmail}`);
 };
 
 module.exports = { sendEMIReminderEmail, sendWelcomeEmail };
